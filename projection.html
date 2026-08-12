@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Atmiyata Mosaic — Projection</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #F7F1E4;
+    --maroon: #5A2A1E;
+    --maroon-soft: #8B3A2B;
+    --marigold: #E08D3C;
+    --terracotta: #C75B39;
+    --sage: #6B7A5E;
+    --line: rgba(90, 42, 30, 0.14);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: var(--cream);
+    background-image:
+      radial-gradient(circle at 8% 12%, rgba(224,141,60,0.09), transparent 42%),
+      radial-gradient(circle at 94% 88%, rgba(199,91,57,0.08), transparent 45%);
+    font-family: 'Inter', sans-serif;
+    color: var(--maroon);
+    overflow: hidden;
+  }
+
+  .stage {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Top bar: live counter + status */
+  .topbar {
+    position: absolute;
+    top: 36px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 44px;
+  }
+
+  .brand {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 18px;
+    letter-spacing: 0.02em;
+    color: var(--maroon-soft);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .brand .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--marigold);
+  }
+
+  .counter {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    letter-spacing: 0.03em;
+    color: var(--terracotta);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,0.5);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 8px 16px;
+  }
+
+  .counter .num {
+    font-weight: 700;
+    color: var(--maroon);
+  }
+
+  .counter .pulse {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--sage);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.35; transform: scale(0.85); }
+    50% { opacity: 1; transform: scale(1.15); }
+  }
+
+  /* Waiting state */
+  #waiting {
+    text-align: center;
+  }
+
+  #waiting .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--terracotta);
+    margin-bottom: 20px;
+  }
+
+  #waiting h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: clamp(40px, 6vw, 72px);
+    margin: 0 0 18px;
+    letter-spacing: -0.01em;
+  }
+
+  #waiting h1 em {
+    font-style: italic;
+    font-weight: 500;
+    color: var(--terracotta);
+  }
+
+  #waiting p {
+    font-size: 17px;
+    color: var(--maroon-soft);
+    margin: 0 0 40px;
+  }
+
+  .qr-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    background: rgba(255,255,255,0.55);
+    border: 1.5px solid var(--line);
+    border-radius: 16px;
+    padding: 16px 26px;
+  }
+
+  .qr-hint .qr-box {
+    width: 52px; height: 52px;
+    border-radius: 8px;
+    background: var(--maroon);
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .qr-hint .qr-box svg { width: 30px; height: 30px; }
+
+  .qr-hint span {
+    font-family: 'Inter', sans-serif;
+    font-size: 14.5px;
+    font-weight: 500;
+    color: var(--maroon-soft);
+    text-align: left;
+  }
+
+  /* Mosaic canvas state */
+  #mosaic-wrap {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 22px;
+  }
+
+  #mosaic-wrap .caption {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(90,42,30,0.45);
+  }
+
+  canvas#mosaic {
+    max-width: 88vw;
+    max-height: 70vh;
+  }
+
+  /* Reveal state banner */
+  #reveal-banner {
+    display: none;
+    position: absolute;
+    bottom: 44px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 500;
+    font-size: 18px;
+    color: var(--terracotta);
+    background: rgba(255,255,255,0.6);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 10px 24px;
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+
+  <div class="topbar">
+    <div class="brand"><span class="dot"></span>Atmiyata Mosaic</div>
+    <div class="counter"><span class="pulse"></span><span class="num" id="counter-num">0</span> threads added</div>
+  </div>
+
+  <!-- WAITING STATE -->
+  <div id="waiting">
+    <div class="eyebrow">Scan to begin</div>
+    <h1>The mosaic is<br><em>waiting</em> for you.</h1>
+    <p>Scan the code, add one thing you noticed today.</p>
+    <div class="qr-hint">
+      <div class="qr-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#F7F1E4" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><line x1="14" y1="14" x2="14" y2="21"/><line x1="21" y1="14" x2="21" y2="21"/><line x1="17.5" y1="14" x2="17.5" y2="17.5"/><line x1="14" y1="17.5" x2="21" y2="17.5"/></svg>
+      </div>
+      <span>QR code renders here<br>once deployed</span>
+    </div>
+  </div>
+
+  <!-- MOSAIC STATE -->
+  <div id="mosaic-wrap">
+    <div class="caption">Live &middot; growing as threads arrive</div>
+    <canvas id="mosaic" width="1200" height="500"></canvas>
+  </div>
+
+  <div id="reveal-banner">Atmiyata — closeness, held together by all of you.</div>
+
+</div>
+
+<script type="module">
+  import { firebaseConfig, isConfigured } from './firebase-config.js';
+
+  const WORD = "Atmiyata";
+  const canvas = document.getElementById('mosaic');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  // 1. Draw the word on an offscreen canvas to use as a mask
+  function getMosaicPoints(word, w, h, step) {
+    const off = document.createElement('canvas');
+    off.width = w; off.height = h;
+    const octx = off.getContext('2d');
+    octx.fillStyle = '#000';
+    octx.font = "700 " + Math.floor(h * 0.62) + "px Fraunces, serif";
+    octx.textAlign = 'center';
+    octx.textBaseline = 'middle';
+    octx.fillText(word, w / 2, h / 2 + h * 0.02);
+
+    const data = octx.getImageData(0, 0, w, h).data;
+    const points = [];
+    for (let y = 0; y < h; y += step) {
+      for (let x = 0; x < w; x += step) {
+        const alpha = data[(y * w + x) * 4 + 3];
+        if (alpha > 120) points.push({ x, y });
+      }
+    }
+    // shuffle so fill order looks organic, not left-to-right
+    for (let i = points.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [points[i], points[j]] = [points[j], points[i]];
+    }
+    return points;
+  }
+
+  const points = getMosaicPoints(WORD, W, H, 9);
+  const colors = ['#C75B39', '#E08D3C', '#8B3A2B'];
+
+  function drawMarigold(x, y, r, color) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.fillStyle = color;
+    for (let i = 0; i < 4; i++) {
+      ctx.rotate(Math.PI / 2 * (i === 0 ? 0 : 1));
+      ctx.beginPath();
+      ctx.ellipse(0, -r * 0.55, r * 0.55, r * 0.85, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = '#5A2A1E';
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.42, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  let filled = 0;
+  const counterEl = document.getElementById('counter-num');
+  const revealBanner = document.getElementById('reveal-banner');
+  const waitingEl = document.getElementById('waiting');
+  const mosaicWrapEl = document.getElementById('mosaic-wrap');
+
+  // Points are reused once every slot is full — later submissions redraw
+  // over an existing (random) point rather than being dropped. See the
+  // roadmap's "overflow handling" note if you'd rather stop rendering
+  // new ones once the word is full.
+  function drawSubmission(index) {
+    const p = points[index % points.length];
+    const color = colors[index % colors.length];
+    drawMarigold(p.x, p.y, 4.4, color);
+  }
+
+  function goLive() {
+    waitingEl.style.display = 'none';
+    mosaicWrapEl.style.display = 'flex';
+  }
+
+  if (!isConfigured) {
+    // ---- DEMO MODE ----
+    // No Firebase project configured yet (see firebase-config.js).
+    // Simulates submissions trickling in so the mosaic is previewable.
+    console.info('[Atmiyata] Running in demo mode — no Firebase config set yet.');
+
+    setTimeout(() => {
+      goLive();
+      const demoInterval = setInterval(() => {
+        const batch = 6 + Math.floor(Math.random() * 10);
+        for (let i = 0; i < batch && filled < points.length; i++, filled++) {
+          drawSubmission(filled);
+        }
+        counterEl.textContent = filled;
+        if (filled >= points.length) {
+          revealBanner.style.display = 'block';
+          clearInterval(demoInterval);
+        }
+      }, 220);
+    }, 1400);
+
+  } else {
+    // ---- LIVE MODE ----
+    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
+    const { getFirestore, collection, doc, onSnapshot, query, orderBy } =
+      await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let hasGoneLive = false;
+    let acceptingSubmissions = true;
+
+    // sessionState controls waiting -> live, and live -> "reveal" framing
+    onSnapshot(doc(db, 'sessionState', 'main'), (snap) => {
+      acceptingSubmissions = snap.exists() ? snap.data().acceptingSubmissions !== false : true;
+      if (!hasGoneLive && filled > 0) { goLive(); hasGoneLive = true; }
+      revealBanner.style.display = (!acceptingSubmissions && filled > 0) ? 'block' : 'none';
+    });
+
+    // submissions collection drives the actual mosaic fill, in arrival order
+    const submissionsQuery = query(collection(db, 'submissions'), orderBy('timestamp', 'asc'));
+    onSnapshot(submissionsQuery, (snapshot) => {
+      if (!hasGoneLive && snapshot.size > 0) { goLive(); hasGoneLive = true; }
+      // Redraw is cheap at this scale — simplest way to stay correct
+      // if documents arrive out of order or the listener reconnects.
+      filled = snapshot.size;
+      ctx.clearRect(0, 0, W, H);
+      for (let i = 0; i < filled; i++) drawSubmission(i);
+      counterEl.textContent = filled;
+      if (!acceptingSubmissions && filled > 0) revealBanner.style.display = 'block';
+    });
+  }
+</script>
+
+</body>
+</html>
