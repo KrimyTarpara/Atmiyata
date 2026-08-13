@@ -41,6 +41,16 @@
     justify-content: center;
   }
 
+  /* Petal shower overlay — sits above everything, never blocks input */
+  #petals {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 40;
+  }
+
   /* Top bar: live counter + status */
   .topbar {
     position: absolute;
@@ -179,6 +189,21 @@
     gap: 22px;
   }
 
+  .guru-photos {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+  }
+
+  .guru-photos img {
+    width: clamp(78px, 18vw, 140px);
+    height: auto;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 6px 20px rgba(90,42,30,0.18);
+  }
+
   #mosaic-wrap .caption {
     font-family: 'JetBrains Mono', monospace;
     font-size: 12px;
@@ -201,7 +226,7 @@
     transform: translateX(-50%);
     font-family: 'Fraunces', serif;
     font-style: italic;
-    font-weight: 900;
+    font-weight: 300;
     font-size: 40px;
     color: var(--terracotta);
     background: rgba(255,255,255,0.6);
@@ -209,14 +234,30 @@
     border-radius: 999px;
     padding: 10px 24px;
   }
+  @media (max-width: 720px) {
+    .topbar {
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 12px 18px;
+      gap: 10px;
+    }
+    .top-right { align-items: flex-start; }
+    .brand { font-size: 16px; }
+    .counter { font-size: 13px; padding: 6px 10px; }
+    #mosaic-wrap .caption { font-size: 11px; }
+    canvas#mosaic { max-width: 94vw; }
+    .guru-photos { gap: 12px; }
+  }
 </style>
 </head>
 <body>
 
 <div class="stage">
 
+  <canvas id="petals"></canvas>
+
   <div class="topbar">
-    <div class="brand"><span class="dot"></span>Atmiyata Mosaic</div>
+    <div class="brand"><span class="dot"></span>Swikar</div>
     <div class="top-right">
       <div class="counter"><span class="pulse"></span><span class="num" id="counter-num">0</span> responses added</div>
       <div id="top-qr" class="qr-hint top-qr" aria-hidden="true">
@@ -231,7 +272,7 @@
   <!-- WAITING STATE -->
   <div id="waiting">
     <div class="eyebrow">Scan to begin</div>
-    <h1>The mosaic is<br><em>waiting</em> for you.</h1>
+    <h1>Your voice is<br><em>part of Atmiyata.</em></h1>
     <p>Scan the code, add one thing you noticed today.</p>
     <div class="qr-hint">
       <div class="qr-box">
@@ -243,7 +284,11 @@
 
   <!-- MOSAIC STATE -->
   <div id="mosaic-wrap">
-    <div class="caption">Live &middot; growing as responses arrive</div>
+    <div class="guru-photos">
+      <img src="guru-1.png" alt="">
+      <img src="guru-2.png" alt="">
+    </div>
+    <div class="caption">Many voices &middot; one Atmiyata</div>
     <canvas id="mosaic" width="1200" height="500"></canvas>
   </div>
 
@@ -319,6 +364,94 @@
   const waitingEl = document.getElementById('waiting');
   const mosaicWrapEl = document.getElementById('mosaic-wrap');
 
+  // ---------- Rose petal shower (plays once, the moment the word completes) ----------
+  const petalCanvas = document.getElementById('petals');
+  const pctx = petalCanvas.getContext('2d');
+
+  function sizePetalCanvas() {
+    petalCanvas.width = window.innerWidth;
+    petalCanvas.height = window.innerHeight;
+  }
+  sizePetalCanvas();
+  window.addEventListener('resize', sizePetalCanvas);
+
+  const PETAL_COLORS = ['#B23A4E', '#D9667C', '#F1A9BA', '#8B3A2B'];
+  let petals = [];
+  let petalSpawning = false;
+  let petalAnimating = false;
+  let petalsTriggered = false; // guards against re-triggering every snapshot
+
+  function makePetal() {
+    return {
+      x: Math.random() * petalCanvas.width,
+      y: -20 - Math.random() * 80,
+      size: 9 + Math.random() * 9,
+      rot: Math.random() * Math.PI * 2,
+      rotSpeed: (Math.random() - 0.5) * 0.05,
+      vy: 1.1 + Math.random() * 1.7,
+      swayFreq: 0.01 + Math.random() * 0.015,
+      swayPhase: Math.random() * Math.PI * 2,
+      color: PETAL_COLORS[Math.floor(Math.random() * PETAL_COLORS.length)],
+      opacity: 0.75 + Math.random() * 0.25
+    };
+  }
+
+  function drawPetal(p) {
+    pctx.save();
+    pctx.translate(p.x, p.y);
+    pctx.rotate(p.rot);
+    pctx.globalAlpha = p.opacity;
+    pctx.fillStyle = p.color;
+    // simple teardrop petal shape
+    pctx.beginPath();
+    pctx.moveTo(0, -p.size * 0.6);
+    pctx.quadraticCurveTo(p.size * 0.6, -p.size * 0.15, 0, p.size * 0.6);
+    pctx.quadraticCurveTo(-p.size * 0.6, -p.size * 0.15, 0, -p.size * 0.6);
+    pctx.fill();
+    pctx.restore();
+  }
+
+  function petalLoop() {
+    pctx.clearRect(0, 0, petalCanvas.width, petalCanvas.height);
+    petals.forEach((p) => {
+      p.swayPhase += p.swayFreq;
+      p.x += Math.sin(p.swayPhase) * 0.6;
+      p.y += p.vy;
+      p.rot += p.rotSpeed;
+      drawPetal(p);
+    });
+    petals = petals.filter((p) => p.y < petalCanvas.height + 30);
+
+    if (petals.length > 0 || petalSpawning) {
+      requestAnimationFrame(petalLoop);
+    } else {
+      petalAnimating = false;
+    }
+  }
+
+  function startPetalShower() {
+    petalSpawning = true;
+    if (!petalAnimating) {
+      petalAnimating = true;
+      requestAnimationFrame(petalLoop);
+    }
+    const spawnTimer = setInterval(() => {
+      for (let i = 0; i < 3; i++) petals.push(makePetal());
+    }, 120);
+    // rain for ~4.5s, then taper off and let the remaining petals fall clear
+    setTimeout(() => {
+      petalSpawning = false;
+      clearInterval(spawnTimer);
+    }, 4500);
+  }
+
+  function maybeCelebrate() {
+    if (!petalsTriggered && filled >= points.length) {
+      petalsTriggered = true;
+      startPetalShower();
+    }
+  }
+
   // Points are reused once every slot is full — later submissions redraw
   // over an existing (random) point rather than being dropped. See the
   // roadmap's "overflow handling" note if you'd rather stop rendering
@@ -334,6 +467,21 @@
     mosaicWrapEl.style.display = 'flex';
     if (topQrEl) topQrEl.style.display = 'inline-flex';
   }
+
+  // Make the mosaic canvas scale responsively to viewport width
+  function resizeMosaicDisplay() {
+    try {
+      const displayWidth = Math.min(window.innerWidth * 0.88, canvas.width);
+      const displayHeight = Math.round(displayWidth * (canvas.height / canvas.width));
+      canvas.style.width = displayWidth + 'px';
+      canvas.style.height = displayHeight + 'px';
+    } catch (e) {
+      // ignore if canvas not ready
+    }
+  }
+  // initial sizing and on resize
+  resizeMosaicDisplay();
+  window.addEventListener('resize', resizeMosaicDisplay);
 
   if (!isConfigured) {
     // ---- DEMO MODE ----
@@ -356,6 +504,7 @@
       responseCount += 1;
       counterEl.textContent = responseCount;
       if (filled >= points.length) revealBanner.style.display = 'block';
+      maybeCelebrate();
     }
 
     window.addEventListener('keydown', (event) => {
@@ -396,6 +545,7 @@
       for (let i = 0; i < filled; i++) drawSubmission(i);
       counterEl.textContent = responseCount;
       if (!acceptingSubmissions && filled > 0) revealBanner.style.display = 'block';
+      maybeCelebrate();
     });
   }
 </script>

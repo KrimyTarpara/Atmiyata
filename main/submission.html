@@ -178,19 +178,19 @@
     // TODO: Add SDKs for Firebase products that you want to use
     // https://firebase.google.com/docs/web/setup#available-libraries
 
-    // Your web app's Firebase configuration
-    const firebaseConfig = {
-        apiKey: "AIzaSyAu8h4FcQgG_owXAjDlGnNGcIi92GIE3Dk",
-        authDomain: "atmiyata-fe4ff.firebaseapp.com",
-        projectId: "atmiyata-fe4ff",
-        storageBucket: "atmiyata-fe4ff.firebasestorage.app",
-        messagingSenderId: "437693563130",
-        appId: "1:437693563130:web:59239bd1e51d91803dc943"
-    };
+        // Use shared firebase-config.js so credentials are not embedded here
+        import { firebaseConfig, isConfigured } from './firebase-config.js';
 
-    // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+        // Initialize Firebase only if a config is provided
+        let app, db;
+        if (isConfigured) {
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+        } else {
+            console.warn('[Atmiyata] submission.html: firebase-config.js is not configured. Submissions will be disabled.');
+            const msgEl = document.getElementById('message');
+            if (msgEl) msgEl.textContent = 'Submissions disabled: Firebase not configured.';
+        }
 
     const form = document.getElementById("submissionForm");
     form.addEventListener("submit", async (event) => {
@@ -202,6 +202,10 @@
             return;
         }
         try {
+            if (!isConfigured) {
+                message.textContent = 'Submissions are disabled (no Firebase config).';
+                return;
+            }
             await addDoc(collection(db, "submissions"), {
                 answer,
                 timestamp: Date.now()
