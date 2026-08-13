@@ -165,13 +165,15 @@
   }
 
   .qr-hint .qr-box {
-    width: 52px; height: 52px;
+    width: 100px; height: 100px;
     border-radius: 8px;
     background: var(--maroon);
     display: flex; align-items: center; justify-content: center;
   }
 
   .qr-hint .qr-box svg { width: 30px; height: 30px; }
+
+  .qr-hint .qr-box img { width: 100%; height: 100%; object-fit: cover; }
 
   .qr-hint span {
     font-family: 'Inter', sans-serif;
@@ -262,7 +264,7 @@
       <div class="counter"><span class="pulse"></span><span class="num" id="counter-num">0</span> responses added</div>
       <div id="top-qr" class="qr-hint top-qr" aria-hidden="true">
         <div class="qr-box">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#F7F1E4" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><line x1="14" y1="14" x2="14" y2="21"/><line x1="21" y1="14" x2="21" y2="21"/><line x1="17.5" y1="14" x2="17.5" y2="17.5"/><line x1="14" y1="17.5" x2="21" y2="17.5"/></svg>
+          <img src="QR.png" alt="QR Code">
         </div>
         <span>Scan this QR!</span>
       </div>
@@ -276,9 +278,9 @@
     <p>Scan the code, add one thing you noticed today.</p>
     <div class="qr-hint">
       <div class="qr-box">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#F7F1E4" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><line x1="14" y1="14" x2="14" y2="21"/><line x1="21" y1="14" x2="21" y2="21"/><line x1="17.5" y1="14" x2="17.5" y2="17.5"/><line x1="14" y1="17.5" x2="21" y2="17.5"/></svg>
+        <img src="QR.png" alt="QR Code">
       </div>
-      <span>QR code renders here<br>once deployed</span>
+      <span>Scan to add your response</span>
     </div>
   </div>
 
