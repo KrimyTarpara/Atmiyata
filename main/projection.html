@@ -491,23 +491,18 @@
 
     let hasGoneLive = false;
     function addDemoThread() {
-      // increment responses (always allowed)
-      responseCount += 1;
-      counterEl.textContent = responseCount;
+      if (filled >= points.length) return;
       if (!hasGoneLive) {
         goLive();
         hasGoneLive = true;
       }
-      // Determine how many responses should contribute visually
-      const visualResponses = Math.min(responseCount, TARGET_RESPONSES);
-      const targetFilled = Math.min(points.length, visualResponses * PARTICLES_PER_SUBMISSION);
-      if (filled >= targetFilled) {
-        if (filled >= points.length) revealBanner.style.display = 'block';
-        maybeCelebrate();
-        return;
+      // Add multiple particles per incoming response so N responses
+      // will roughly fill the word (where N = TARGET_RESPONSES).
+      for (let p = 0; p < PARTICLES_PER_SUBMISSION && filled < points.length; p++, filled++) {
+        drawSubmission(filled);
       }
-      for (let i = filled; i < targetFilled; i++) drawSubmission(i);
-      filled = targetFilled;
+      responseCount += 1;
+      counterEl.textContent = responseCount;
       if (filled >= points.length) revealBanner.style.display = 'block';
       maybeCelebrate();
     }
@@ -541,11 +536,11 @@
     const submissionsQuery = query(collection(db, 'submissions'), orderBy('timestamp', 'asc'));
     onSnapshot(submissionsQuery, (snapshot) => {
       if (!hasGoneLive && snapshot.size > 0) { goLive(); hasGoneLive = true; }
-      // Count responses (always shown) but only let up to TARGET_RESPONSES
-      responseCount = snapshot.size;
-      const visualResponses = Math.min(responseCount, TARGET_RESPONSES);
-      const newFilled = Math.min(points.length, visualResponses * PARTICLES_PER_SUBMISSION);
+      // Scale the visual fill so a reasonable number of people
+      // (TARGET_RESPONSES) will complete the word.
+      const newFilled = Math.min(points.length, snapshot.size * PARTICLES_PER_SUBMISSION);
       filled = newFilled;
+      responseCount = snapshot.size;
       ctx.clearRect(0, 0, W, H);
       for (let i = 0; i < filled; i++) drawSubmission(i);
       counterEl.textContent = responseCount;
